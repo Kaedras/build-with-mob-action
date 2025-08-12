@@ -21,7 +21,30 @@ jobs:
           mo2-dependencies: uibase
 ```
 
-The action must be run on `windows-2022` since MSVC is required.
+**Example cross-platform usage**:
+
+```yml
+name: Build My Plugin
+on:
+  push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ windows-2022, ubuntu-24.04 ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Build My Plugin
+        uses: ModOrganizer2/build-with-mob-action@master
+        with:
+          mo2-dependencies: uibase
+```
+
+The action will build for the os it is run on, i.e. windows when running on `windows-2022`,
+or linux when running on `ubuntu-24.04`
 
 ## Configuration
 

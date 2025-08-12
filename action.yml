@@ -34,6 +34,10 @@ inputs:
     description: List of Qt modules to install.
     required: false
     default: ""
+  cmake-preset:
+    description: CMake preset to use.
+    required: false
+    default: ${{ runner.os == 'Windows' && 'vs2022-windows' || 'linux' }}
 
 outputs:
   cmake-prefix-path:
@@ -81,12 +85,12 @@ runs:
       with:
         version: ${{ steps.find-qt-version.outputs.QT_VERSION }}
         modules: ${{ inputs.qt-modules }}
-        arch: win64_msvc2022_64
+        arch: ${{ runner.os == 'Windows' && 'win64_msvc2022_64' || 'linux_gcc_64' }}
         aqtsource: git+https://github.com/Holt59/aqtinstall.git
         cache: true
     - name: Add Qt bins to PATH
       shell: pwsh
-      run: echo "${QT_ROOT_DIR}/msvc2022_64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      run: echo "${QT_ROOT_DIR}/${{ runner.os == 'Windows' && 'msvc2022_64' || 'gcc_64' }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     # set VCPKG Root
     - name: "Set environmental variables"
@@ -99,8 +103,8 @@ runs:
       id: set-cmake-paths
       shell: bash
       run: |
-        echo "cmake-prefix-path=${QT_ROOT_DIR}\msvc2022_64;${{ github.workspace }}\build\cmake_common;${{ github.workspace }}\install\lib\cmake" >> $GITHUB_OUTPUT
-        echo "cmake-install-path=${{ github.workspace }}\install" >> $GITHUB_OUTPUT
+        echo "cmake-prefix-path=${QT_ROOT_DIR}/${{ runner.os == 'Windows' && 'msvc2022_64' || 'gcc_64' }};${{ github.workspace }}/build/cmake_common;${{ github.workspace }}/install/lib/cmake" >> $GITHUB_OUTPUT
+        echo "cmake-install-path=${{ github.workspace }}/install" >> $GITHUB_OUTPUT
 
     # MO2 dependencies
     - name: Checkout MO2 modules
@@ -126,11 +130,12 @@ runs:
             cmake --build --preset vs2022-windows-x86 --config RelWithDebInfo --target INSTALL --parallel 16
           }
           else {
-            cmake --preset vs2022-windows `
+            cmake --preset ${{ inputs.cmake-preset }} `
               "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" `
               "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" `
               "-DBUILD_TESTING=OFF"
-            cmake --build --preset vs2022-windows --config RelWithDebInfo --target INSTALL --parallel 16
+            cmake --build --preset ${{ inputs.cmake-preset }} --config RelWithDebInfo `
+              --target ${{ runner.os == 'Windows' && 'INSTALL' || 'install' }} --parallel 16
           }
           Pop-Location
         }
@@ -145,7 +150,7 @@ runs:
       shell: pwsh
       run: |
         Push-Location build/${{ github.event.repository.name }}
-        cmake --preset vs2022-windows `
+        cmake --preset ${{ inputs.cmake-preset }} `
           "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" `
           "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" `
           "-DBUILD_TESTING=ON"
@@ -156,5 +161,5 @@ runs:
       if: inputs.mo2-skip-checkout != 'true' && inputs.mo2-skip-configure != 'true' && inputs.mo2-skip-build != 'true'
       shell: pwsh
       run: |
-        cmake --build --preset vs2022-windows --config RelWithDebInfo --parallel 16
+        cmake --build --preset ${{ inputs.cmake-preset }} --config RelWithDebInfo --parallel 16
       working-directory: ./build/${{ github.event.repository.name }}
