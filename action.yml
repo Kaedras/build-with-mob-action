@@ -64,21 +64,21 @@ runs:
         fi
         echo "branch=${branch}" >> "$GITHUB_OUTPUT"
     - name: Checkout mob.ini
-      shell: pwsh
+      shell: bash
       run: |
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ModOrganizer2/mob/refs/heads/${{ steps.determine-mob-branch.outputs.branch }}/mob.ini" -OutFile ${{ github.workspace }}/mob.ini
+        wget -q -O "${{ github.workspace }}/mob.ini" "https://raw.githubusercontent.com/ModOrganizer2/mob/refs/heads/${{ steps.determine-mob-branch.outputs.branch }}/mob.ini"
 
     # Qt
     - name: Get Qt version
       id: find-qt-version
-      shell: pwsh
+      shell: bash
       run: |
-        $version = "${{ inputs.qt-version }}"
-        if (!$version) {
-          $version = (Get-Content "${{ github.workspace }}/mob.ini" | Select-String -Raw "^qt\s+=").Split("= ")[1]
-        }
-        Write-Output "Found Qt Version: $version"
-        Write-Output "QT_VERSION=$version" >> "$env:GITHUB_OUTPUT"
+        version="${{ inputs.qt-version }}"
+        if [ -z "$version" ]; then
+          version=$(cat "${{ github.workspace }}/mob.ini" | grep -E "^qt\s+=" | awk -F '= ' '{print $2}')
+        fi
+        echo "Found Qt Version: $version"
+        echo "QT_VERSION=$version" >> "$GITHUB_OUTPUT"
     - if: inputs.qt-install == 'true'
       name: Install Qt
       uses: jurplel/install-qt-action@v4
@@ -89,8 +89,8 @@ runs:
         aqtsource: git+https://github.com/Holt59/aqtinstall.git
         cache: true
     - name: Add Qt bins to PATH
-      shell: pwsh
-      run: echo "${QT_ROOT_DIR}/${{ runner.os == 'Windows' && 'msvc2022_64' || 'gcc_64' }}/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      shell: bash
+      run: echo "${QT_ROOT_DIR}/${{ runner.os == 'Windows' && 'msvc2022_64' || 'gcc_64' }}/bin" >> $GITHUB_PATH
 
     # set VCPKG Root
     - name: "Set environmental variables"
@@ -108,37 +108,43 @@ runs:
 
     # MO2 dependencies
     - name: Checkout MO2 modules
-      shell: pwsh
-      run: '& ${env:GITHUB_ACTION_PATH}/checkout-mo2-dependencies.ps1 -Owner ${{ inputs.mo2-owner }} -Branch ${{ inputs.mo2-branch }} "cmake_common ${{ inputs.mo2-dependencies }}"'
+      shell: bash
+      run: |
+        chmod u+x "$GITHUB_ACTION_PATH/checkout-mo2-dependencies.sh"
+        '$GITHUB_ACTION_PATH/checkout-mo2-dependencies.sh -Owner ${{ inputs.mo2-owner }} -Branch ${{ inputs.mo2-branch }} "cmake_common ${{ inputs.mo2-dependencies }}"'
 
     - name: Configure & Build MO2 dependencies
-      shell: pwsh
+      shell: bash
       run: |
-        Get-ChildItem build -Directory -Exclude ".git", "cmake_common", "${{ github.event.repository.name }}" | ForEach-Object {
-          Write-Output "Building $_... "
-          Push-Location $_
-          if ($_.Name -eq "usvfs") {
-            cmake --preset vs2022-windows-x64 `
-              "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" `
-              "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" `
-              "-DBUILD_TESTING=OFF"
-            cmake --build --preset vs2022-windows-x64 --config RelWithDebInfo --target INSTALL --parallel 16
-            cmake --preset vs2022-windows-x86 `
-              "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" `
-              "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" `
-              "-DBUILD_TESTING=OFF"
-            cmake --build --preset vs2022-windows-x86 --config RelWithDebInfo --target INSTALL --parallel 16
-          }
-          else {
-            cmake --preset ${{ inputs.cmake-preset }} `
-              "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" `
-              "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" `
-              "-DBUILD_TESTING=OFF"
-            cmake --build --preset ${{ inputs.cmake-preset }} --config RelWithDebInfo `
-              --target ${{ runner.os == 'Windows' && 'INSTALL' || 'install' }} --parallel 16
-          }
-          Pop-Location
-        }
+        for dir in ./build/*; do
+          if [ -d "$dir" ]; then
+            if [ "$dir" != ".git" ] && [ "$dir" != "cmake_common" ]; then
+              echo "Building $dir..."
+              pushd "$dir" 1> /dev/null
+              if [ "$dir" == "usvfs" ]; then
+                cmake --preset vs2022-windows-x64 \
+                  "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" \
+                  "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" \
+                  "-DBUILD_TESTING=OFF"
+                cmake --build --preset vs2022-windows-x64 --config RelWithDebInfo --target INSTALL --parallel 16
+                cmake --preset vs2022-windows-x86 \
+                  "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" \
+                  "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" \
+                  "-DBUILD_TESTING=OFF"
+                cmake --build --preset vs2022-windows-x86 --config RelWithDebInfo --target INSTALL --parallel 16
+        
+              else
+                cmake --preset ${{ inputs.cmake-preset }} \
+                  "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" \
+                  "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" \
+                  "-DBUILD_TESTING=OFF"
+                cmake --build --preset ${{ inputs.cmake-preset }} --config RelWithDebInfo \
+                  --target ${{ runner.os == 'Windows' && 'INSTALL' || 'install' }} --parallel 16
+              fi
+              popd 1> /dev/null
+            fi
+          fi
+        done;
 
     - uses: actions/checkout@v3
       if: inputs.mo2-skip-checkout != 'true'
@@ -147,19 +153,19 @@ runs:
 
     - name: Configure Repository
       if: inputs.mo2-skip-checkout != 'true' && inputs.mo2-skip-configure != 'true'
-      shell: pwsh
+      shell: bash
       run: |
-        Push-Location build/${{ github.event.repository.name }}
-        cmake --preset ${{ inputs.cmake-preset }} `
-          "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" `
-          "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" `
+        pushd build/${{ github.event.repository.name }} 1> /dev/null
+        cmake --preset ${{ inputs.cmake-preset }} \
+          "-DCMAKE_PREFIX_PATH=${{ steps.set-cmake-paths.outputs.cmake-prefix-path }}" \
+          "-DCMAKE_INSTALL_PREFIX=${{ steps.set-cmake-paths.outputs.cmake-install-path }}" \
           "-DBUILD_TESTING=ON"
-        Pop-Location
+        popd 1> /dev/null
 
     # build repository
     - name: Build Repository
       if: inputs.mo2-skip-checkout != 'true' && inputs.mo2-skip-configure != 'true' && inputs.mo2-skip-build != 'true'
-      shell: pwsh
+      shell: bash
       run: |
         cmake --build --preset ${{ inputs.cmake-preset }} --config RelWithDebInfo --parallel 16
       working-directory: ./build/${{ github.event.repository.name }}
