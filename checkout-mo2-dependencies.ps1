@@ -33,6 +33,15 @@ function Switch-Branch {
             $Owner = "ModOrganizer2"
             $remote = "origin"
         }
+        else {
+            # try to checkout
+            git checkout "$remote" 2>&1 | Out-Null
+            if ($LASTEXITCODE) {
+                Write-Output ("Checkout remote $remote for $name failed, falling back to ModOrganizer2.")
+                $Owner = "ModOrganizer2"
+                $remote = "origin"
+            }
+        }
     }
 
     git checkout "$remote/$Branch" 2>&1 | Out-Null
