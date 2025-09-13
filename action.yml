@@ -57,14 +57,7 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        set -e
-        
-        sudo apt update && sudo apt install -y zstd
-        
         wget https://github.com/Kaedras/gcc-bin/releases/download/gcc-15.2.0/gcc-15.2.0.tar.zst
-        wget https://github.com/Kaedras/gcc-bin/releases/download/gcc-15.2.0/sha512sums
-      
-        sha512sum -c sha512sums
         
         tar xf gcc-15.2.0.tar.zst
         sudo mv gcc-15/ /opt/
