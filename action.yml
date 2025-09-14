@@ -38,6 +38,10 @@ inputs:
     description: CMake preset to use.
     required: false
     default: ${{ runner.os == 'Windows' && 'vs2022-windows' || 'linux' }}
+  upgrade-gcc:
+    description: Whether to upgrade GCC to 15.2
+    required: false
+    default: "false"
 
 outputs:
   cmake-prefix-path:
@@ -54,7 +58,7 @@ runs:
   using: "composite"
   steps:
     - name: Download and set up GCC 15.2
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && upgrade-gcc == 'true'
       shell: bash
       run: |
         wget https://github.com/Kaedras/gcc-bin/releases/download/gcc-15.2.0/gcc-15.2.0.tar.zst
