@@ -59,7 +59,8 @@ runs:
       run: |
         wget https://github.com/Kaedras/gcc-bin/releases/download/gcc-15.2.0/gcc-15.2.0.tar.zst
         
-        tar xf gcc-15.2.0.tar.zst
+        mkdir gcc-15
+        tar xf gcc-15.2.0.tar.zst -C gcc-15
         sudo mv gcc-15/ /opt/
         
         sudo update-alternatives --install /usr/bin/gcc gcc /opt/gcc-15/bin/gcc 100
