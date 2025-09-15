@@ -41,7 +41,7 @@ inputs:
   upgrade-gcc:
     description: Whether to upgrade GCC to 15.2
     required: false
-    default: "false"
+    default: "true"
 
 outputs:
   cmake-prefix-path:
