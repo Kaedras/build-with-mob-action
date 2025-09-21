@@ -87,6 +87,11 @@ runs:
         mv cbindgen "$BIN_PATH"
         chmod +x "$BIN_PATH/cbindgen"
         echo "$BIN_PATH" >> "$GITHUB_PATH"
+    # Qt6WebEngineWidgets requires Qt6PrintSupport, which in turn requires cups
+    - name: Install additional dependencies for qtwebengine
+      if: runner.os == 'Linux' && contains(inputs.qt-modules, 'qtwebengine')
+      shell: bash
+      run: sudo apt-get install -y libcups2-dev
 
     # Qt version
     - name: Determine mob branch
