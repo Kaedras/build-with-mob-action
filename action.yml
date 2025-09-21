@@ -70,11 +70,23 @@ runs:
         sudo update-alternatives --install /usr/bin/gcc gcc /opt/gcc-15/bin/gcc 100
         sudo update-alternatives --install /usr/bin/g++ g++ /opt/gcc-15/bin/g++ 100
 
+    # linux specific dependencies
     - name: Install additional dependencies
       if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update && sudo apt-get install -y libtbb-dev
+    - name: Install additional dependencies for lootcli
+      if: runner.os == 'Linux' && contains(inputs.mo2-dependencies, lootcli)
+      shell: bash
+      run: |
+        sudo apt-get install -y libicu-dev
+        wget https://github.com/mozilla/cbindgen/releases/download/0.28.0/cbindgen
+        BIN_PATH="$HOME/.local/bin/"
+        mkdir -p "$BIN_PATH"
+        mv cbindgen "$BIN_PATH"
+        chmod +x "$BIN_PATH/cbindgen"
+        echo "$BIN_PATH" >> "$GITHUB_PATH"
 
     # Qt version
     - name: Determine mob branch
