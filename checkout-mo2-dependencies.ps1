@@ -15,39 +15,38 @@ function Switch-Branch {
     $remote = "origin"
 
     if ($Owner -ne "ModOrganizer2") {
-
-        $remote = $Owner
-
-        # handle errors for repositories that have no ModOrganizer2 remote
         try {
+            $remote = $Owner
+
             $url = (git remote -v | Select-String -Raw "ModOrganizer2")[1].Split()[1].Replace("ModOrganizer2", $Owner)
-        } catch {
-            Write-Output ("Remote ModOrganizer2 does not exist, not changing remote.")
-            break
-        }
 
-        if (git remote -v | Select-String "$Owner/") {
-            git remote set-url $remote $url
-        }
-        else {
-            git remote add $remote $url
-        }
 
-        # try to fetch
-        git fetch --depth 1 $Owner 2>&1 | Out-Null
-        if ($LASTEXITCODE) {
-            Write-Output ("No remote $remote for $name found, falling back to ModOrganizer2.")
-            $Owner = "ModOrganizer2"
-            $remote = "origin"
-        }
-        else {
-            # try to checkout
-            git checkout "$remote" 2>&1 | Out-Null
+            if (git remote -v | Select-String "$Owner/") {
+                git remote set-url $remote $url
+            }
+            else {
+                git remote add $remote $url
+            }
+
+            # try to fetch
+            git fetch --depth 1 $Owner 2>&1 | Out-Null
             if ($LASTEXITCODE) {
-                Write-Output ("Checkout remote $remote for $name failed, falling back to ModOrganizer2.")
+                Write-Output ("No remote $remote for $name found, falling back to ModOrganizer2.")
                 $Owner = "ModOrganizer2"
                 $remote = "origin"
             }
+            else {
+                # try to checkout
+                git checkout "$remote" 2>&1 | Out-Null
+                if ($LASTEXITCODE) {
+                    Write-Output ("Checkout remote $remote for $name failed, falling back to ModOrganizer2.")
+                    $Owner = "ModOrganizer2"
+                    $remote = "origin"
+                }
+            }
+        } catch {
+            # handle errors for repositories that have no ModOrganizer2 remote
+            Write-Output ("Error getting remote.")
         }
     }
 
