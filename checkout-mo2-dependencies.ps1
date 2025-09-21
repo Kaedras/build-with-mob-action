@@ -17,7 +17,14 @@ function Switch-Branch {
     if ($Owner -ne "ModOrganizer2") {
 
         $remote = $Owner
-        $url = (git remote -v | Select-String -Raw "ModOrganizer2")[1].Split()[1].Replace("ModOrganizer2", $Owner)
+
+        # handle errors for repositories that have no ModOrganizer2 remote
+        try {
+            $url = (git remote -v | Select-String -Raw "ModOrganizer2")[1].Split()[1].Replace("ModOrganizer2", $Owner)
+        } catch {
+            Write-Output ("Remote ModOrganizer2 does not exist, not changing remote.")
+            break
+        }
 
         if (git remote -v | Select-String "$Owner/") {
             git remote set-url $remote $url
