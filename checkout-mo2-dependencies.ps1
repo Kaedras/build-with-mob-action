@@ -69,6 +69,10 @@ $DependenciesS.Split() | Select-Object -Unique | ForEach-Object {
         $fullname = "modorganizer-$fullname"
     }
     git clone "https://github.com/ModOrganizer2/$fullname.git" $_
+    if ($LASTEXITCODE) {
+        Write-Output ("Failed to clone from ModOrganizer2/$fullname.git, trying $Owner/$fullname.git")
+        git clone "https://github.com/$Owner/$fullname.git" $_
+    }
 }
 
 Write-Host "Switching branches... "
