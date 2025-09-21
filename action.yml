@@ -77,7 +77,7 @@ runs:
       run: |
         sudo apt-get update && sudo apt-get install -y libtbb-dev
     - name: Install additional dependencies for lootcli
-      if: runner.os == 'Linux' && contains(inputs.mo2-dependencies, lootcli)
+      if: runner.os == 'Linux' && contains(inputs.mo2-dependencies, 'lootcli')
       shell: bash
       run: |
         sudo apt-get install -y libicu-dev
