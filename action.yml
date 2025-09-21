@@ -80,7 +80,7 @@ runs:
       if: runner.os == 'Linux' && contains(inputs.mo2-dependencies, 'lootcli')
       shell: bash
       run: |
-        sudo apt-get install -y libicu-dev
+        sudo apt-get install -y autoconf-archive
         wget https://github.com/mozilla/cbindgen/releases/download/0.28.0/cbindgen
         BIN_PATH="$HOME/.local/bin/"
         mkdir -p "$BIN_PATH"
