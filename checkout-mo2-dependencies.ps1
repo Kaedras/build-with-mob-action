@@ -63,7 +63,7 @@ function Switch-Branch {
     Pop-Location
 }
 
-$simpleRepositoryNames = @("usvfs", "cmake_common")
+$simpleRepositoryNames = @("usvfs", "usvfs-fuse", "cmake_common")
 
 New-Item -Path "build" -ItemType Directory -Force | Out-Null
 Push-Location "build"
