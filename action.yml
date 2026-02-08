@@ -82,6 +82,11 @@ runs:
       shell: bash
       run: sudo apt-get install -y libcups2-dev
 
+    - name: Install additional dependencies for usvfs-fuse
+      if: runner.os == 'Linux' && contains(inputs.mo2-dependencies, 'usvfs-fuse')
+      shell: bash
+      run: sudo apt-get install -y libfuse3-dev
+
     # Qt version
     - name: Determine mob branch
       id: determine-mob-branch
