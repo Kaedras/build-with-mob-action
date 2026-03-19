@@ -38,10 +38,6 @@ inputs:
     description: CMake preset to use.
     required: false
     default: ${{ runner.os == 'Windows' && 'vs2022-windows' || 'linux' }}
-  upgrade-gcc:
-    description: Whether to upgrade GCC to 15.2
-    required: false
-    default: "true"
 
 outputs:
   cmake-prefix-path:
@@ -57,25 +53,26 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Download and set up GCC 15.2
-      if: runner.os == 'Linux' && inputs.upgrade-gcc == 'true'
-      shell: bash
-      run: |
-        wget https://github.com/Kaedras/gcc-bin/releases/download/gcc-15.2.0/gcc-15.2.0.tar.zst
-        
-        mkdir gcc-15
-        tar xf gcc-15.2.0.tar.zst -C gcc-15
-        sudo mv gcc-15/ /opt/
-        
-        sudo update-alternatives --install /usr/bin/gcc gcc /opt/gcc-15/bin/gcc 100
-        sudo update-alternatives --install /usr/bin/g++ g++ /opt/gcc-15/bin/g++ 100
-
-    # linux specific dependencies
-    - name: Install additional dependencies
+    - name: Update packages
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        sudo apt-get update && sudo apt-get install -y libtbb-dev
+        sudo apt-get update
+        sudo apt-get full-upgrade -y
+
+    - name: Install GCC 15.2
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get install -y --no-install-recommends software-properties-common
+        sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        sudo apt-get install -y --no-install-recommends gcc-15 g++-15
+
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
+        sudo update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-15 100
+        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-15 100
+
     # Qt6WebEngineWidgets requires Qt6PrintSupport, which in turn requires cups
     - name: Install additional dependencies for qtwebengine
       if: runner.os == 'Linux' && contains(inputs.qt-modules, 'qtwebengine')
