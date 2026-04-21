@@ -82,7 +82,7 @@ runs:
         version: ${{ steps.find-qt-version.outputs.QT_VERSION }}
         modules: ${{ inputs.qt-modules }}
         arch: win64_msvc2022_64
-        aqtsource: git+https://github.com/Holt59/aqtinstall.git
+        aqtsource: git+https://github.com/miurahr/aqtinstall.git
         cache: true
     - name: Add Qt bins to PATH
       shell: pwsh
